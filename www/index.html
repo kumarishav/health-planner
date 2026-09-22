@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BMI, Exercise and Calorie Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f2f6f3;--card:#fff;--ink:#12332b;--mute:#5b7169;--line:#d5e2dc;--accent:#0f7a5c;--on-accent:#fff;
+--c1:#5b8def;--c2:#2fa37a;--c3:#e5a336;--c4:#d4553f;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1a16;--card:#16261f;--ink:#e6f2ec;--mute:#93aba1;--line:#28402f;--accent:#3ecf9e;--on-accent:#06251b}}
+:root[data-theme="dark"]{--bg:#0e1a16;--card:#16261f;--ink:#e6f2ec;--mute:#93aba1;--line:#28402f;--accent:#3ecf9e;--on-accent:#06251b}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.55 Manrope,system-ui,sans-serif}
+main{max-width:720px;margin:0 auto;padding:24px 16px 48px}
+h1,h2{font-family:"Bricolage Grotesque",Manrope,system-ui,sans-serif;line-height:1.1;margin:0}
+h1{font-size:clamp(28px,6vw,40px);font-weight:800}
+h2{font-size:22px;font-weight:600;margin-bottom:12px}
+.sub{color:var(--mute);margin:8px 0 24px;max-width:52ch}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media (max-width:480px){.grid{grid-template-columns:1fr}}
+label{display:block;font-size:14px;font-weight:700;margin-bottom:4px}
+input,select{width:100%;padding:10px 12px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.check{display:flex;gap:8px;align-items:flex-start;margin-top:14px;font-size:14px;color:var(--mute)}
+.check input{width:auto;margin-top:4px}
+button{margin-top:16px;width:100%;padding:12px;font:700 16px Manrope,sans-serif;background:var(--accent);color:var(--on-accent);border:0;border-radius:10px;cursor:pointer}
+.err{color:var(--c4);font-size:14px;margin-top:10px;min-height:1em}
+#out{display:none}
+.bmi{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.bmi b{font:800 64px/1 "Bricolage Grotesque",Manrope,sans-serif}
+.cat{font-weight:700;padding:2px 12px;border-radius:99px;color:#fff}
+.scale{position:relative;display:flex;height:14px;border-radius:99px;overflow:hidden;margin:28px 0 8px}
+.scale i{display:block;height:100%}
+.pin{position:absolute;top:-8px;width:4px;height:30px;background:var(--ink);border-radius:2px;transform:translateX(-50%);transition:left .6s ease}
+.ticks{position:relative;height:18px;font-size:12px;color:var(--mute)}
+.ticks span{position:absolute;transform:translateX(-50%)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+@media (max-width:480px){.stats{grid-template-columns:1fr}}
+.stat{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.stat small{display:block;color:var(--mute);font-size:13px}
+.stat b{font-size:22px}
+.target b{color:var(--accent)}
+ul{padding-left:20px;margin:8px 0}
+li{margin-bottom:8px}
+.note{font-size:13px;color:var(--mute)}
+.bar{height:10px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .4s ease}
+.bar i.over{background:var(--c4)}
+.mini{width:auto;margin:0;padding:4px 10px;font-size:13px;font-weight:500;background:transparent;color:var(--mute);border:1px solid var(--line)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 4px}
+.chips .mini{color:var(--ink);border-radius:99px}
+.meal{margin-top:18px}
+.meal h3{font-size:15px;margin:0 0 4px;display:flex;justify-content:space-between}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--line)}
+.row span:first-child{flex:1}
+svg.chart{width:100%;height:auto;display:block;margin:12px 0}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+@media (prefers-reduced-motion:reduce){.pin{transition:none}}
+</style>
+</head>
+<body>
+<main>
+<h1>Know your BMI. Train and eat to match it.</h1>
+<p class="sub">Enter your details to get your BMI, a weekly exercise plan for your range, and a daily calorie target.</p>
+
+<div class="card">
+<div class="grid">
+<div><label for="age">Age (years)</label><input id="age" type="number" inputmode="numeric" min="18" max="90" value="28"></div>
+<div><label for="sex">Sex</label><select id="sex"><option value="m">Male</option><option value="f">Female</option></select></div>
+<div><label for="h">Height (cm)</label><input id="h" type="number" inputmode="decimal" min="100" max="250" value="170"></div>
+<div><label for="w">Weight (kg)</label><input id="w" type="number" inputmode="decimal" min="25" max="300" value="70"></div>
+<div><label for="act">Activity level</label><select id="act">
+<option value="1.2">Desk job, little exercise</option>
+<option value="1.375" selected>Light exercise 1–3 days/week</option>
+<option value="1.55">Moderate exercise 3–5 days/week</option>
+<option value="1.725">Hard exercise 6–7 days/week</option></select></div>
+<div><label for="goal">Goal</label><select id="goal"><option value="auto">Match my BMI</option><option value="lose">Lose weight</option><option value="maintain">Maintain weight</option><option value="gain">Gain weight</option></select></div>
+</div>
+<label class="check"><input id="asian" type="checkbox" checked><span>Use Asian BMI cut-offs (overweight from 23, obese from 25). Untick for standard WHO cut-offs (25 and 30).</span></label>
+<button id="go" type="button">Calculate</button>
+<div class="err" id="err" role="alert"></div>
+</div>
+
+<div id="out">
+<div class="card">
+<h2>Your BMI</h2>
+<div class="bmi"><b id="bmiv"></b><span class="cat" id="bmic"></span></div>
+<div class="scale" id="scale"><div class="pin" id="pin"></div></div>
+<div class="ticks" id="ticks"></div>
+<p id="range" class="note"></p>
+</div>
+
+<div class="card">
+<h2>Daily calories</h2>
+<div class="stats">
+<div class="stat"><small>Resting (BMR)</small><b id="bmr"></b></div>
+<div class="stat"><small>Maintenance</small><b id="tdee"></b></div>
+<div class="stat target"><small id="tlabel">Your target</small><b id="target"></b></div>
+</div>
+<p id="cnote" class="note"></p>
+</div>
+
+<div class="card">
+<h2>Your weekly exercise plan</h2>
+<p id="eintro" style="margin-top:0"></p>
+<ul id="elist"></ul>
+</div>
+
+<div class="card">
+<h2>Food log</h2>
+<div class="bar"><i id="fbar"></i></div>
+<p id="fsum" style="margin:8px 0 16px"></p>
+<div class="grid">
+<div><label for="fname">Food</label><input id="fname" type="text" placeholder="e.g. Poha" maxlength="60"></div>
+<div><label for="fkcal">Calories (kcal)</label><input id="fkcal" type="number" inputmode="numeric" min="1" max="3000"></div>
+<div><label for="fmeal">Meal</label><select id="fmeal"><option>Breakfast</option><option>Lunch</option><option>Snacks</option><option>Dinner</option></select></div>
+</div>
+<button id="fadd" type="button">Add food</button>
+<p class="note" style="margin-top:14px">Quick add, approximate per serving:</p>
+<div class="chips" id="chips"></div>
+<div id="flist"></div>
+<p class="note" style="margin-top:14px">Your log is saved on this device and starts fresh each day.</p>
+</div>
+
+<div class="card">
+<h2>Your week</h2>
+<p id="wksum" style="margin-top:0"></p>
+<div id="wkchart"></div>
+<p class="note">Calories eaten each day for the last 7 days, from your food log. Days you did not log show no bar.</p>
+</div>
+
+<div class="card">
+<h2>Weight progress</h2>
+<p id="wsum" style="margin-top:0">Log your weight to see your trend and BMI over time.</p>
+<div class="grid">
+<div><label for="wdate">Date</label><input id="wdate" type="date"></div>
+<div><label for="wv">Weight (kg)</label><input id="wv" type="number" inputmode="decimal" min="25" max="300" step="0.1"></div>
+<div><label for="wgoal">Goal weight (kg)</label><input id="wgoal" type="number" inputmode="decimal" min="25" max="300" step="0.1"></div>
+</div>
+<button id="wadd" type="button">Log weight</button>
+<p id="wgtxt" style="margin:12px 0 0"></p>
+<div id="wchart"></div>
+<div id="wlist"></div>
+<p class="note" style="margin-top:14px">Logging the same date again replaces that day's weight. Entries are saved on this device.</p>
+</div>
+
+<p class="note">BMI is a screening number. It ignores muscle mass and where fat is carried. This is general information, not medical advice. Check with a doctor before starting a new routine or a calorie deficit, especially with a health condition.</p>
+</div>
+</main>
+
+<script>
+(function(){
+var $=function(id){return document.getElementById(id)};
+var MIN=15,MAX=40;
+function pct(v){return Math.max(0,Math.min(100,(v-MIN)/(MAX-MIN)*100))}
+var plans={
+under:{intro:"Focus on building muscle and strength while keeping cardio light.",items:[
+"Strength training 3 days: squats, push-ups, rows, and lifts with progressive weight.",
+"Light cardio 1–2 days: 20–30 min walk or easy cycling.",
+"Rest 2 days with a short walk. Sleep 7–9 hours so muscle can recover.",
+"Eat a small calorie surplus with protein at every meal."]},
+normal:{intro:"Keep your weight steady and build overall fitness.",items:[
+"Moderate cardio 150 min/week: brisk walking, cycling, swimming or jogging.",
+"Strength training 2 days: full-body, 8–12 reps of each move.",
+"One flexibility session: yoga or 15 min of stretching.",
+"Take a walk after meals and stay active on rest days."]},
+over:{intro:"Build a steady routine that burns calories and protects your joints.",items:[
+"Brisk walking or cycling 30–45 min, 5 days/week.",
+"Strength training 2–3 days: bodyweight squats, wall push-ups, resistance bands, light weights.",
+"One low-impact session: swimming, water aerobics or an elliptical.",
+"Aim for 7,000–9,000 steps a day and add a little time each week."]},
+obese:{intro:"Start gently and build up slowly. Consistency matters more than intensity.",items:[
+"Walking 15–20 min, 5 days/week. Add 5 minutes every week or two.",
+"Low-impact options: swimming, water walking, stationary bike.",
+"Chair-based or bodyweight strength moves 2 days/week: sit-to-stand, wall push-ups, seated leg raises.",
+"Gentle stretching daily. Talk to a doctor before starting or increasing intensity."]}};
+
+var meals=["Breakfast","Lunch","Snacks","Dinner"],log=[],curTarget=0,curAdj=0;
+var KEY="foodlog:"+new Date().toLocaleDateString("en-CA");
+try{var raw=JSON.parse(localStorage.getItem(KEY)||"[]");if(Array.isArray(raw))log=raw.filter(function(x){return x&&typeof x.n==="string"&&x.k>0&&meals.indexOf(x.m)>-1})}catch(e){log=[]}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(log))}catch(e){}}
+var hr=new Date().getHours();$("fmeal").value=hr<11?"Breakfast":hr<16?"Lunch":hr<19?"Snacks":"Dinner";
+var quick=[["Roti",100],["Rice, 1 bowl",200],["Dal, 1 bowl",150],["Idli",50],["Paneer curry, 1 bowl",300],["Banana",105],["Egg, boiled",78],["Chai with sugar",80]];
+quick.forEach(function(q){var b=document.createElement("button");b.type="button";b.className="mini";b.textContent=q[0]+" "+q[1];b.addEventListener("click",function(){$("fname").value=q[0];$("fkcal").value=q[1]});$("chips").appendChild(b)});
+function dayTotal(key,i){
+if(i===0)return log.reduce(function(a,x){return a+x.k},0);
+try{var r=JSON.parse(localStorage.getItem("foodlog:"+key)||"[]");if(!Array.isArray(r))return 0;return r.reduce(function(a,x){return a+(x&&x.k>0?x.k:0)},0)}catch(e){return 0}}
+function renderWeek(){
+var days=[],i;
+for(i=6;i>=0;i--){var d=new Date(),k;d.setDate(d.getDate()-i);k=d.toLocaleDateString("en-CA");days.push({lab:d.toLocaleDateString("en-IN",{weekday:"short"}),t:dayTotal(k,i)})}
+var logged=days.filter(function(x){return x.t>0}),n=logged.length,sum=logged.reduce(function(a,x){return a+x.t},0);
+var mx=Math.max.apply(null,days.map(function(x){return x.t}).concat([curTarget,1]));
+var svg='<svg class="chart" viewBox="0 0 300 130" role="img" aria-label="Calories eaten in the last 7 days"><line x1="0" x2="300" y1="100" y2="100" stroke="var(--line)"/>';
+days.forEach(function(x,j){
+var bh=x.t/mx*85,bx=14+j*41,by=100-bh,over=curTarget>0&&x.t>curTarget;
+if(x.t>0)svg+='<rect x="'+bx+'" y="'+by.toFixed(1)+'" width="28" height="'+bh.toFixed(1)+'" rx="3" fill="'+(over?"var(--c4)":"var(--accent)")+'"/><text x="'+(bx+14)+'" y="'+(by-4).toFixed(1)+'" font-size="9" text-anchor="middle" fill="var(--mute)">'+x.t+'</text>';
+svg+='<text x="'+(bx+14)+'" y="117" font-size="10" text-anchor="middle" fill="var(--mute)">'+x.lab+'</text>'});
+if(curTarget>0){var ty=100-curTarget/mx*85;svg+='<line x1="0" x2="300" y1="'+ty.toFixed(1)+'" y2="'+ty.toFixed(1)+'" stroke="var(--c3)" stroke-width="1.5" stroke-dasharray="5 4"/><text x="298" y="'+(ty-3).toFixed(1)+'" font-size="9" text-anchor="end" fill="var(--mute)">Target '+curTarget+'</text>'}
+$("wkchart").innerHTML=svg+"</svg>";
+if(!n){$("wksum").textContent="Add foods to your log to see your week.";return}
+var msg="Logged "+n+" of 7 days. Average "+Math.round(sum/n)+" kcal on logged days.";
+if(curTarget>0){var ok=logged.filter(function(x){return curAdj>0?x.t>=curTarget*0.9:x.t<=curTarget}).length;
+msg+=" "+ok+" of "+n+(curAdj>0?" days reached your target.":" days at or under your target.")}
+else msg+=" Calculate your calories above to compare with a target.";
+$("wksum").textContent=msg}
+function renderLog(){
+var total=log.reduce(function(a,x){return a+x.k},0),bar=$("fbar");
+if(curTarget>0){bar.style.width=Math.min(100,total/curTarget*100)+"%";bar.className=total>curTarget?"over":"";
+$("fsum").textContent=total+" of "+curTarget+" kcal eaten. "+(total>curTarget?(total-curTarget)+" kcal over your target.":(curTarget-total)+" kcal left today.")}
+else{bar.style.width="0";$("fsum").textContent=total+" kcal eaten today."}
+var box=$("flist");box.innerHTML="";
+meals.forEach(function(m){
+var items=log.map(function(x,i){return {x:x,i:i}}).filter(function(o){return o.x.m===m});
+if(!items.length)return;
+var d=document.createElement("div");d.className="meal";
+var h=document.createElement("h3"),sub=items.reduce(function(a,o){return a+o.x.k},0);
+h.innerHTML="<span></span><span></span>";h.children[0].textContent=m;h.children[1].textContent=sub+" kcal";d.appendChild(h);
+items.forEach(function(o){
+var r=document.createElement("div");r.className="row";
+var a=document.createElement("span");a.textContent=o.x.n;
+var k=document.createElement("span");k.textContent=o.x.k+" kcal";
+var b=document.createElement("button");b.type="button";b.className="mini";b.textContent="Remove";b.setAttribute("aria-label","Remove "+o.x.n);
+b.addEventListener("click",function(){log.splice(o.i,1);save();renderLog()});
+r.appendChild(a);r.appendChild(k);r.appendChild(b);d.appendChild(r)});
+box.appendChild(d)});renderWeek()}
+function addFood(){
+var n=$("fname").value.trim(),k=Math.round(+$("fkcal").value);
+if(!n||!(k>0&&k<=3000)){$("fsum").textContent="Enter a food name and calories between 1 and 3000.";return}
+log.push({n:n,k:k,m:$("fmeal").value});save();$("fname").value="";$("fkcal").value="";renderLog();$("fname").focus()}
+$("fadd").addEventListener("click",addFood);
+$("fkcal").addEventListener("keydown",function(e){if(e.key==="Enter")addFood()});
+renderLog();
+var WK="weightlog",wlog=[];
+try{var r2=JSON.parse(localStorage.getItem(WK)||"[]");if(Array.isArray(r2))wlog=r2.filter(function(x){return x&&/^\d{4}-\d{2}-\d{2}$/.test(x.d)&&x.w>=25&&x.w<=300})}catch(e){wlog=[]}
+function wsave(){try{localStorage.setItem(WK,JSON.stringify(wlog))}catch(e){}}
+var goalW=0;try{goalW=+localStorage.getItem("weightgoal")||0}catch(e){}
+if(!(goalW>=25&&goalW<=300))goalW=0;
+$("wgoal").value=goalW||"";
+$("wgoal").addEventListener("change",function(){var v=+$("wgoal").value;goalW=v>=25&&v<=300?Math.round(v*10)/10:0;try{localStorage.setItem("weightgoal",String(goalW))}catch(e){}renderW()});
+function renderGoal(){
+var g=$("wgtxt");
+if(!goalW){g.textContent="";return}
+var cur=wlog.length?wlog[wlog.length-1].w:(+$("w").value||0);
+if(!cur){g.textContent="";return}
+var diff=Math.round((goalW-cur)*10)/10,h=(+$("h").value||0)/100,msg="",wk=curAdj*7/7700;
+if(Math.abs(diff)<0.1)msg="You are at your goal weight.";
+else if(!curTarget)msg="Calculate your calories above to see how long "+(diff<0?"losing ":"gaining ")+Math.abs(diff)+" kg could take.";
+else if(diff*wk<=0)msg="Goal: "+(diff<0?"lose ":"gain ")+Math.abs(diff)+" kg. Your current calorie target "+(curAdj===0?"keeps your weight steady":"moves you the other way")+". Choose \""+(diff<0?"Lose":"Gain")+" weight\" under Goal above for an estimate.";
+else msg="About "+Math.ceil(Math.abs(diff)/Math.abs(wk))+" weeks to "+(diff<0?"lose ":"gain ")+Math.abs(diff)+" kg at your current calorie target. Real progress varies and often slows over time.";
+if(h>=1){var gb=goalW/(h*h);if(gb<18.5)msg+=" A goal weight with a BMI of "+gb.toFixed(1)+" is underweight. Consider a higher goal."}
+g.textContent=msg}
+var today=new Date().toLocaleDateString("en-CA");$("wdate").value=today;$("wdate").max=today;
+function fd(d){return new Date(d+"T00:00:00").toLocaleDateString("en-IN",{day:"numeric",month:"short"})}
+function renderW(){
+wlog.sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:0});renderGoal();
+var n=wlog.length,h=(+$("h").value||0)/100,ch=$("wchart"),ls=$("wlist");ch.innerHTML="";ls.innerHTML="";
+if(!n){$("wsum").textContent="Log your weight to see your trend and BMI over time.";return}
+var f=wlog[0].w,l=wlog[n-1].w,df=Math.round((l-f)*10)/10;
+$("wsum").textContent="Latest "+l+" kg. "+(n<2?"Log again later to see your trend.":df===0?"No change since "+fd(wlog[0].d)+".":(df<0?"Down ":"Up ")+Math.abs(df)+" kg since "+fd(wlog[0].d)+".");
+if(n>1){
+var ws=wlog.map(function(x){return x.w});if(goalW)ws.push(goalW);var mn=Math.min.apply(null,ws),mx=Math.max.apply(null,ws),rg=(mx-mn)||1;
+var pts=wlog.map(function(x,i){return [30+i*(260/(n-1)),15+(1-(x.w-mn)/rg)*80]});
+var pl=pts.map(function(q){return q[0].toFixed(1)+","+q[1].toFixed(1)}).join(" ");
+var dots=pts.map(function(q){return '<circle cx="'+q[0].toFixed(1)+'" cy="'+q[1].toFixed(1)+'" r="3.5" fill="var(--accent)"/>'}).join("");
+var gl="";if(goalW){var gy=(15+(1-(goalW-mn)/rg)*80).toFixed(1);gl='<line x1="30" x2="290" y1="'+gy+'" y2="'+gy+'" stroke="var(--c3)" stroke-width="1.5" stroke-dasharray="5 4"/><text x="290" y="'+(gy-4)+'" font-size="10" text-anchor="end" fill="var(--mute)">Goal '+goalW+'</text>'}
+ch.innerHTML='<svg class="chart" viewBox="0 0 300 125" role="img" aria-label="Weight over time"><polyline points="'+pl+'" fill="none" stroke="var(--accent)" stroke-width="2.5"/>'+dots+gl+'<text x="0" y="19" font-size="10" fill="var(--mute)">'+mx+'</text><text x="0" y="99" font-size="10" fill="var(--mute)">'+mn+'</text><text x="30" y="118" font-size="10" fill="var(--mute)">'+fd(wlog[0].d)+'</text><text x="290" y="118" font-size="10" text-anchor="end" fill="var(--mute)">'+fd(wlog[n-1].d)+'</text></svg>'}
+wlog.map(function(x,i){return {x:x,i:i}}).reverse().slice(0,8).forEach(function(o){
+var r=document.createElement("div");r.className="row";
+var a=document.createElement("span");a.textContent=fd(o.x.d)+"  "+o.x.w+" kg"+(h>=1?"  BMI "+(o.x.w/(h*h)).toFixed(1):"");
+var b=document.createElement("button");b.type="button";b.className="mini";b.textContent="Remove";b.setAttribute("aria-label","Remove weight entry for "+fd(o.x.d));
+b.addEventListener("click",function(){wlog.splice(o.i,1);wsave();renderW()});
+r.appendChild(a);r.appendChild(b);ls.appendChild(r)})}
+function addW(){
+var d=$("wdate").value,w=Math.round(+$("wv").value*10)/10;
+if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||d>today||!(w>=25&&w<=300)){$("wsum").textContent="Pick a date that is not in the future and a weight between 25 and 300 kg.";return}
+wlog=wlog.filter(function(x){return x.d!==d});wlog.push({d:d,w:w});wsave();renderW()}
+$("wadd").addEventListener("click",addW);
+renderW();
+function cuts(asian){return asian?[18.5,23,25]:[18.5,25,30]}
+function cat(b,c){
+if(b<c[0])return {k:"under",n:"Underweight",col:"var(--c1)"};
+if(b<c[1])return {k:"normal",n:"Healthy range",col:"var(--c2)"};
+if(b<c[2])return {k:"over",n:"Overweight",col:"var(--c3)"};
+return {k:"obese",n:"Obese",col:"var(--c4)"}}
+
+function run(){
+var age=+$("age").value,h=+$("h").value,w=+$("w").value,sex=$("sex").value,act=+$("act").value,goal=$("goal").value,asian=$("asian").checked;
+var e=$("err");e.textContent="";
+if(!(age>=18&&age<=90)){e.textContent="Enter an age between 18 and 90.";return}
+if(!(h>=100&&h<=250)){e.textContent="Enter a height between 100 and 250 cm.";return}
+if(!(w>=25&&w<=300)){e.textContent="Enter a weight between 25 and 300 kg.";return}
+var m=h/100,bmi=w/(m*m),c=cuts(asian),ct=cat(bmi,c);
+$("bmiv").textContent=bmi.toFixed(1);
+var cc=$("bmic");cc.textContent=ct.n;cc.style.background=ct.col;
+var sc=$("scale");sc.querySelectorAll("i").forEach(function(n){n.remove()});
+var edges=[MIN,c[0],c[1],c[2],MAX],cols=["--c1","--c2","--c3","--c4"];
+for(var i=0;i<4;i++){var s=document.createElement("i");s.style.width=(pct(edges[i+1])-pct(edges[i]))+"%";s.style.background="var("+cols[i]+")";sc.insertBefore(s,$("pin"))}
+$("pin").style.left=pct(bmi)+"%";
+var t=$("ticks");t.innerHTML="";
+[c[0],c[1],c[2]].forEach(function(v){var s=document.createElement("span");s.style.left=pct(v)+"%";s.textContent=v;t.appendChild(s)});
+var lo=c[0]*m*m,hi=(c[1]-0.1)*m*m;
+$("range").textContent="A healthy weight for your height is about "+lo.toFixed(0)+" to "+hi.toFixed(0)+" kg.";
+var bmr=10*w+6.25*h-5*age+(sex==="m"?5:-161),tdee=bmr*act;
+var g=goal==="auto"?(ct.k==="under"?"gain":ct.k==="normal"?"maintain":"lose"):goal;
+var adj=g==="lose"?-500:g==="gain"?400:0,target=tdee+adj,floor=sex==="m"?1500:1200,note="";
+if(g==="lose"){note="A 500 kcal daily deficit is about 0.5 kg of loss per week. ";if(target<floor){target=floor;note+="Your target is held at the safe minimum of "+floor+" kcal. Do not go lower without medical supervision."}}
+else if(g==="gain")note="A 400 kcal daily surplus supports gradual gain. Pair it with strength training so the gain is mostly muscle.";
+else note="This maintains your current weight at your activity level.";
+$("bmr").textContent=Math.round(bmr)+" kcal";
+$("tdee").textContent=Math.round(tdee)+" kcal";
+$("tlabel").textContent=g==="lose"?"Target to lose":g==="gain"?"Target to gain":"Target to maintain";
+$("target").textContent=Math.round(target)+" kcal";curTarget=Math.round(target);curAdj=target-tdee;renderLog();if(!$("wv").value)$("wv").value=w;renderW();
+$("cnote").textContent=note+" Estimated with the Mifflin-St Jeor formula.";
+var p=plans[ct.k];$("eintro").textContent=p.intro;
+var l=$("elist");l.innerHTML="";p.items.forEach(function(x){var li=document.createElement("li");li.textContent=x;l.appendChild(li)});
+$("out").style.display="block";
+$("out").scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth",block:"start"});
+}
+$("go").addEventListener("click",run);
+})();
+</script>
+</body>
+</html>
